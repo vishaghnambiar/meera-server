@@ -30,7 +30,7 @@ WEBHOOK_URL      = os.getenv("WEBHOOK_URL", "")
 
 def get_gemini_url():
     key = os.getenv("GEMINI_API_KEY", "")
-    return f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={key}"
+    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
 
 app = FastAPI()
 bot = Bot(token=TELEGRAM_TOKEN)
@@ -85,13 +85,30 @@ async def parse_command(user_text: str) -> dict:
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.post(get_gemini_url(), json=payload)
             data = resp.json()
-            raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            # Strip markdown fences if present
+            # Gemini 2.5 may return multiple parts (thinking + response)
+            parts = data["candidates"][0]["content"]["parts"]
+            raw = ""
+            for part in parts:
+                text = part.get("text", "")
+                if "{" in text and "action" in text:
+                    raw = text
+                    break
+            if not raw:
+                raw = parts[-1].get("text", "")
+            raw = raw.strip()
+            # Strip markdown fences
             if "```" in raw:
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            raw = raw.strip().rstrip("`").strip()
+                start = raw.find("```") + 3
+                if raw[start:start+4] == "json":
+                    start += 4
+                end = raw.rfind("```")
+                raw = raw[start:end]
+            # Extract just the JSON object
+            start = raw.find("{")
+            end = raw.rfind("}") + 1
+            if start >= 0 and end > start:
+                raw = raw[start:end]
+            raw = raw.strip()
             return json.loads(raw)
     except Exception as e:
         log.error(f"Gemini error: {e}")
