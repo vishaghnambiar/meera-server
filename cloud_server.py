@@ -30,7 +30,7 @@ WEBHOOK_URL      = os.getenv("WEBHOOK_URL", "")
 
 def get_gemini_url():
     key = os.getenv("GEMINI_API_KEY", "")
-    return f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={key}"
+    return f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={key}"
 
 app = FastAPI()
 bot = Bot(token=TELEGRAM_TOKEN)
