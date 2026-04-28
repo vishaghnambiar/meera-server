@@ -28,7 +28,9 @@ ALLOWED_USER_IDS = set(map(int, os.getenv("ALLOWED_USER_IDS", "").split(",") if 
 PC_SECRET        = os.getenv("PC_SECRET", "meera-secret-2024")
 WEBHOOK_URL      = os.getenv("WEBHOOK_URL", "")
 
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+def get_gemini_url():
+    key = os.getenv("GEMINI_API_KEY", "")
+    return f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
 
 app = FastAPI()
 bot = Bot(token=TELEGRAM_TOKEN)
@@ -81,7 +83,7 @@ async def parse_command(user_text: str) -> dict:
     }
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(GEMINI_URL, json=payload)
+            resp = await client.post(get_gemini_url(), json=payload)
             data = resp.json()
             raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
             # Strip markdown fences if present
